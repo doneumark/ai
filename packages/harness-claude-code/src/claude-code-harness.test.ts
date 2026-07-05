@@ -189,6 +189,7 @@ describe('createClaudeCode adapter', () => {
       'Monitor',
       'ListMcpResources',
       'ReadMcpResource',
+      'ToolSearch',
       'ExitPlanMode',
       'EnterWorktree',
       'ExitWorktree',
@@ -204,6 +205,10 @@ describe('createClaudeCode adapter', () => {
     // native name directly, so the entry intentionally omits both
     // `nativeName` and `commonName`.
     expect(harness.builtinTools.WebFetch).toBeDefined();
+    // ToolSearch is the CLI's native deferred-tool-loading search. It is
+    // absent from the agent SDK's typings (it exists only in the CLI binary),
+    // so its declaration must not regress when builtins are re-transcribed.
+    expect(harness.builtinTools.ToolSearch).toBeDefined();
   });
 
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {

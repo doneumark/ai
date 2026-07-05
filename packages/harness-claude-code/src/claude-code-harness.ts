@@ -296,6 +296,19 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
     description: 'Read a specific MCP resource by URI',
     inputSchema: z.object({ server: z.string(), uri: z.string() }),
   }),
+  /*
+   * Not present in `agentSdkTypes.d.ts` — the tool exists only in the CLI
+   * binary. The CLI defers MCP tool definitions (including the harness's own
+   * `harness-tools` server) by default on models that support tool search,
+   * and the model calls `ToolSearch` to discover and load them on demand.
+   */
+  ToolSearch: tool({
+    description: 'Search for and load deferred tools on demand',
+    inputSchema: z.object({
+      query: z.string(),
+      max_results: z.number().optional(),
+    }),
+  }),
   ExitPlanMode: tool({
     description: 'Exit plan mode with optional permission approvals',
     inputSchema: z.looseObject({

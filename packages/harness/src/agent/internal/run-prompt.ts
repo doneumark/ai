@@ -821,19 +821,31 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
  * Validate an inbound `tool-call` event against the merged tool set's schema
  * using the AI SDK's canonical `parseToolCall`. Returns an AI SDK `tool-call`
  * stream part with parsed input on success, or a `dynamic + invalid: true`
- * part on failure (unknown tool, schema mismatch, malformed JSON).
+ * part on failure (unknown host tool, schema mismatch, malformed JSON).
  *
  * The harness `tool-call` event is structurally a `LanguageModelV4ToolCall`
  * (plus an optional harness-only `nativeName`). `providerExecuted` already
  * lives on the V4 type — `true` for adapter builtins (Claude Code's `Bash`,
  * Codex's `shell`), false/undefined for host tools — and is passed through
  * to the AI SDK part by `parseToolCall`.
+ *
+ * Unknown *provider-executed* tools degrade to dynamic tool calls rather than
+ * invalid ones: the runtime already executed the tool inside the sandbox, so
+ * the host has no schema to validate against and the call is not an error.
+ * This keeps runtime-native tools that are newer than the adapter's declared
+ * built-in list (e.g. a new CLI tool shipped ahead of the adapter) from
+ * surfacing as `NoSuchToolError`s on otherwise healthy turns. Unknown tools
+ * the host would have to execute itself stay invalid — those are real errors.
  */
 export async function validateToolCall<TOOLS extends ToolSet>(args: {
   event: Extract<HarnessV1StreamPart, { type: 'tool-call' }>;
   tools: TOOLS;
 }): Promise<TextStreamPart<TOOLS>> {
   const { event, tools } = args;
+  const dynamic =
+    event.dynamic === true ||
+    (event.providerExecuted === true &&
+      !hasTool({ tools, toolName: event.toolName }));
   const toolCall: LanguageModelV4ToolCall = {
     type: 'tool-call',
     toolCallId: event.toolCallId,
@@ -842,6 +854,7 @@ export async function validateToolCall<TOOLS extends ToolSet>(args: {
     ...(event.providerExecuted !== undefined
       ? { providerExecuted: event.providerExecuted }
       : {}),
+    ...(dynamic ? { dynamic } : {}),
     ...(event.providerMetadata !== undefined
       ? { providerMetadata: event.providerMetadata }
       : {}),

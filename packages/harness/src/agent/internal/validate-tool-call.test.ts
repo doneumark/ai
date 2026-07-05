@@ -87,6 +87,85 @@ describe('validateToolCall', () => {
     );
   });
 
+  it('degrades an undeclared provider-executed tool to a dynamic tool call', async () => {
+    // Runtime-native tools newer than the adapter's builtin list (e.g. a new
+    // CLI tool shipped ahead of the adapter): the runtime already executed
+    // them, so there is nothing to validate and the call is not an error.
+    const result = await validateToolCall<typeof tools>({
+      event: {
+        type: 'tool-call',
+        toolCallId: 'c6',
+        toolName: 'ToolSearch',
+        input: '{"query":"select:mcp__harness-tools__weather"}',
+        providerExecuted: true,
+      },
+      tools,
+    });
+
+    expect(result).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'c6',
+      toolName: 'ToolSearch',
+      input: { query: 'select:mcp__harness-tools__weather' },
+      providerExecuted: true,
+      dynamic: true,
+    });
+    expect(
+      (result as ToolCall & { invalid?: boolean }).invalid,
+    ).toBeUndefined();
+    expect((result as ToolCall & { error?: Error }).error).toBeUndefined();
+  });
+
+  it('keeps an undeclared provider-executed tool with malformed input invalid', async () => {
+    const result = await validateToolCall<typeof tools>({
+      event: {
+        type: 'tool-call',
+        toolCallId: 'c7',
+        toolName: 'ToolSearch',
+        input: '{not json',
+        providerExecuted: true,
+      },
+      tools,
+    });
+
+    expect(result).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'c7',
+      toolName: 'ToolSearch',
+      invalid: true,
+      dynamic: true,
+    });
+    expect((result as ToolCall & { error?: Error }).error).toBeInstanceOf(
+      Error,
+    );
+  });
+
+  it('forwards the dynamic flag from the harness event', async () => {
+    const result = await validateToolCall<typeof tools>({
+      event: {
+        type: 'tool-call',
+        toolCallId: 'c8',
+        toolName: 'mcpTool',
+        input: '{"x":1}',
+        providerExecuted: true,
+        dynamic: true,
+      },
+      tools,
+    });
+
+    expect(result).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'c8',
+      toolName: 'mcpTool',
+      input: { x: 1 },
+      providerExecuted: true,
+      dynamic: true,
+    });
+    expect(
+      (result as ToolCall & { invalid?: boolean }).invalid,
+    ).toBeUndefined();
+  });
+
   it('omits providerExecuted when the bridge did not set it', async () => {
     const result = await validateToolCall<typeof tools>({
       event: {
