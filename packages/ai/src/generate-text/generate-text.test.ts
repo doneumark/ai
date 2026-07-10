@@ -10317,6 +10317,7 @@ describe('generateText', () => {
                   approvalId: 'id-1',
                   type: 'tool-approval-response',
                   approved: true,
+                  reason: 'user confirmed',
                 },
               ],
             },
@@ -10331,6 +10332,19 @@ describe('generateText', () => {
             abortSignal: undefined,
             toolCallId: 'call-1',
             messages: expect.any(Array),
+          }),
+        );
+      });
+
+      it('should pass the approval decision to the tool execution', async () => {
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value' },
+          expect.objectContaining({
+            approval: {
+              approvalId: 'id-1',
+              approved: true,
+              reason: 'user confirmed',
+            },
           }),
         );
       });

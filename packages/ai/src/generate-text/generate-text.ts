@@ -14,6 +14,7 @@ import {
   type IdGenerator,
   type InferToolSetContext,
   type ProviderOptions,
+  type ToolExecutionApproval,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
@@ -691,6 +692,21 @@ export async function generateText<
           toolCalls: localApprovedToolApprovals.map(
             toolApproval => toolApproval.toolCall,
           ),
+          // Thread each approval decision into its tool execution so
+          // `execute` can act on data attached to the approval (the denial
+          // path already delivers its reason via `execution-denied`).
+          approvalsByToolCallId: new Map(
+            localApprovedToolApprovals.map(toolApproval => [
+              toolApproval.toolCall.toolCallId,
+              {
+                approvalId: toolApproval.approvalResponse.approvalId,
+                approved: true as const,
+                ...(toolApproval.approvalResponse.reason !== undefined
+                  ? { reason: toolApproval.approvalResponse.reason }
+                  : {}),
+              },
+            ]),
+          ),
           tools: tools as TOOLS,
           callId,
           messages: initialMessages,
@@ -1181,6 +1197,22 @@ export async function generateText<
                       !toolCall.invalid &&
                       !blockedToolCallIds.has(toolCall.toolCallId),
                   ),
+                  // Automatic approvals from the tool-approval configuration
+                  // ride into the execution the same way explicit ones do.
+                  approvalsByToolCallId: new Map(
+                    toolApprovalResponses
+                      .filter(response => response.approved)
+                      .map(response => [
+                        response.toolCall.toolCallId,
+                        {
+                          approvalId: response.approvalId,
+                          approved: true as const,
+                          ...(response.reason !== undefined
+                            ? { reason: response.reason }
+                            : {}),
+                        },
+                      ]),
+                  ),
                   tools,
                   callId,
                   messages: stepMessages,
@@ -1464,6 +1496,7 @@ export async function generateText<
 
 async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
+  approvalsByToolCallId,
   tools,
   callId,
   messages,
@@ -1477,6 +1510,11 @@ async function executeTools<TOOLS extends ToolSet>({
   runInTracingChannelSpan,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
+  /**
+   * Approval decisions keyed by toolCallId, for tool calls that went through
+   * a tool-approval flow. Forwarded into each tool execution.
+   */
+  approvalsByToolCallId?: ReadonlyMap<string, ToolExecutionApproval>;
   tools: TOOLS;
   callId: string;
   messages: ModelMessage[];
@@ -1507,6 +1545,7 @@ async function executeTools<TOOLS extends ToolSet>({
           abortSignal,
           timeout,
           experimental_sandbox: sandbox,
+          approval: approvalsByToolCallId?.get(toolCall.toolCallId),
           toolsContext,
           onToolExecutionStart,
           onToolExecutionEnd,
