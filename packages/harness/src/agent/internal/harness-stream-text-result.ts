@@ -436,6 +436,25 @@ export class HarnessStreamTextResult<
   }
 
   /**
+   * Settle the turn as user-aborted: emit a final `abort` part — matching
+   * `streamText`'s abort contract — and close the stream, instead of
+   * surfacing an `error` part. `toUIMessageStream` consumers then observe
+   * an `abort` chunk (and `isAborted: true`) rather than a spurious
+   * `onError`. The delayed promise accessors still reject with the
+   * underlying abort error so awaiting consumers do not hang. Idempotent.
+   */
+  abort(input: { error: unknown; reason?: string }): void {
+    if (this.settled) return;
+    this.settled = true;
+    this.fullStreamController.enqueue({
+      type: 'abort',
+      ...(input.reason !== undefined ? { reason: input.reason } : {}),
+    } as TextStreamPart<TOOLS>);
+    this.fullStreamController.close();
+    this.rejectDelayedPromises(input.error);
+  }
+
+  /**
    * Surface a fatal error as a stream `error` part + reject every delayed
    * promise so awaiting consumers stop hanging. Idempotent.
    */
@@ -447,6 +466,10 @@ export class HarnessStreamTextResult<
       error,
     } as TextStreamPart<TOOLS>);
     this.fullStreamController.close();
+    this.rejectDelayedPromises(error);
+  }
+
+  private rejectDelayedPromises(error: unknown): void {
     for (const dp of [
       this._content,
       this._text,
