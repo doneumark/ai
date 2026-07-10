@@ -114,13 +114,6 @@ const NATIVE_TOOL_KINDS: Readonly<
   EnterWorktree: 'edit',
   ExitWorktree: 'edit',
   ExitPlanMode: 'edit',
-  /*
-   * Activating a skill only reads its SKILL.md and injects the instructions
-   * into context — side effects happen through the skill's follow-up tool
-   * calls, each gated by its own kind. Classified readonly (like
-   * AskUserQuestion) so 'allow-reads' does not require approval to load
-   * guidance.
-   */
   Skill: 'readonly',
   AskUserQuestion: 'readonly',
   Bash: 'bash',

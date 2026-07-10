@@ -367,9 +367,6 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
       metadata: z.object({ source: z.string().optional() }).optional(),
     }),
   }),
-  // Readonly: activation injects the skill's instructions into context; any
-  // side effects run through the skill's follow-up tool calls, each gated by
-  // its own kind. Mirrors the bridge's NATIVE_TOOL_KINDS classification.
   Skill: {
     ...tool({
       description: 'Activate a skill by name',
