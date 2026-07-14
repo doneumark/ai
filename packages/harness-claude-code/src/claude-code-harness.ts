@@ -377,6 +377,14 @@ const CLAUDE_CODE_BUILTIN_TOOLS = {
     }),
     toolUseKind: 'readonly',
   },
+  ToolSearch: tool({
+    description:
+      'Search deferred MCP / catalog tools so the model can load them on demand',
+    inputSchema: z.object({
+      query: z.string(),
+      max_results: z.number().optional(),
+    }),
+  }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 /*
