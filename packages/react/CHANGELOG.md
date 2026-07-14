@@ -1,5 +1,22 @@
 # @ai-sdk/react
 
+## 4.0.29
+
+### Patch Changes
+
+- 519c72b: fix (react/mcp-apps): sanitize server-supplied CSP domains in `getMCPAppCSP` so values cannot inject extra directives, sources, or policies into the generated Content-Security-Policy
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [ac01b79]
+- Updated dependencies [31c7be8]
+- Updated dependencies [2696562]
+  - ai@7.0.27
+  - @ai-sdk/provider-utils@5.0.10
+  - @ai-sdk/mcp@2.0.13
+
 ## 4.0.27
 
 ### Patch Changes
