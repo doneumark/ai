@@ -1,5 +1,18 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.23
+
+### Patch Changes
+
+- Updated dependencies [0063c2d]
+  - @ai-sdk/openai@4.0.15
+
+## 5.0.22
+
+### Patch Changes
+
+- 43fc411: Return Bedrock Converse request bodies from language model generation and streaming calls.
+
 ## 5.0.21
 
 ### Patch Changes
