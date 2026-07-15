@@ -1,5 +1,19 @@
 # ai
 
+## 7.0.29
+
+### Patch Changes
+
+- Updated dependencies [7069785]
+- Updated dependencies [4bf9ac2]
+  - @ai-sdk/gateway@4.0.21
+
+## 7.0.28
+
+### Patch Changes
+
+- 0bc8d4f: Fix chat `onFinish` handling when overlapping requests clear the active response before a resume stream finishes.
+
 ## 7.0.27
 
 ### Patch Changes
