@@ -628,6 +628,7 @@ export class HarnessStreamTextResult<
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onEnd,
     onFinish,
     messageMetadata,
     sendReasoning,
@@ -644,6 +645,7 @@ export class HarnessStreamTextResult<
         tools: this.tools,
         originalMessages,
         generateMessageId,
+        onEnd,
         onFinish,
         messageMetadata,
         sendReasoning,
@@ -666,6 +668,7 @@ export class HarnessStreamTextResult<
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onEnd,
     onFinish,
     messageMetadata,
     sendReasoning,
@@ -683,6 +686,7 @@ export class HarnessStreamTextResult<
       stream: this.toUIMessageStream<UI_MESSAGE>({
         originalMessages,
         generateMessageId,
+        onEnd,
         onFinish,
         messageMetadata,
         sendReasoning,

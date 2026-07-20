@@ -4,7 +4,7 @@ import {
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { hasToolCall, isStepCount, type TextStreamPart } from 'ai';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type {
   HarnessV1,
@@ -861,7 +861,10 @@ describe('runPrompt host tool generator results', () => {
 });
 
 describe('runPrompt abort semantics', () => {
-  const abortedRun = (script: HarnessV1StreamPart[]) => {
+  const abortedRun = (
+    script: HarnessV1StreamPart[],
+    options?: { onTurnFailed?: () => void },
+  ) => {
     const controller = new AbortController();
     controller.abort();
     return runPrompt({
@@ -875,6 +878,7 @@ describe('runPrompt abort semantics', () => {
       sessionWorkDir: WORK_DIR,
       runtimeContext: {} as never,
       abortSignal: controller.signal,
+      onTurnFailed: options?.onTurnFailed,
     });
   };
 
@@ -920,17 +924,34 @@ describe('runPrompt abort semantics', () => {
     await expect(result.finishReason).rejects.toBeDefined();
   });
 
-  test('toUIMessageStream emits an abort chunk and does not invoke onError for an aborted turn', async () => {
+  test('notifies onTurnFailed when an aborted turn settles, so session turn tracking returns to idle', async () => {
+    const onTurnFailed = vi.fn();
+    const { result, done } = abortedRun(
+      [{ type: 'error', error: 'AbortError: This operation was aborted' }],
+      { onTurnFailed },
+    );
+
+    await result.consumeStream();
+    await done;
+
+    expect(onTurnFailed).toHaveBeenCalledTimes(1);
+  });
+
+  test('toUIMessageStream emits an abort chunk, skips onError, and reports isAborted to onEnd for an aborted turn', async () => {
     const { result, done } = abortedRun([
       { type: 'error', error: 'AbortError: This operation was aborted' },
     ]);
 
     const onErrorCalls: unknown[] = [];
+    const onEndCalls: { isAborted: boolean }[] = [];
     const chunkTypes: string[] = [];
     for await (const chunk of result.toUIMessageStream({
       onError: error => {
         onErrorCalls.push(error);
         return 'error';
+      },
+      onEnd: ({ isAborted }) => {
+        onEndCalls.push({ isAborted });
       },
     })) {
       chunkTypes.push((chunk as { type: string }).type);
@@ -940,5 +961,6 @@ describe('runPrompt abort semantics', () => {
     expect(onErrorCalls).toHaveLength(0);
     expect(chunkTypes).toContain('abort');
     expect(chunkTypes).not.toContain('error');
+    expect(onEndCalls).toEqual([{ isAborted: true }]);
   });
 });
