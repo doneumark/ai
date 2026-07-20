@@ -11840,16 +11840,44 @@ describe('generateText', () => {
                   approvalId: 'id-1',
                   type: 'tool-approval-response',
                   approved: true,
+                  reason: 'reason for call-1',
                 },
                 {
                   approvalId: 'id-2',
                   type: 'tool-approval-response',
                   approved: true,
+                  reason: 'reason for call-2',
                 },
               ],
             },
           ],
         });
+      });
+
+      it('should thread each approval decision into its own tool execution', async () => {
+        expect(executeFunction).toHaveBeenCalledTimes(2);
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value1' },
+          expect.objectContaining({
+            toolCallId: 'call-1',
+            approval: {
+              approvalId: 'id-1',
+              approved: true,
+              reason: 'reason for call-1',
+            },
+          }),
+        );
+        expect(executeFunction).toHaveBeenCalledWith(
+          { value: 'value2' },
+          expect.objectContaining({
+            toolCallId: 'call-2',
+            approval: {
+              approvalId: 'id-2',
+              approved: true,
+              reason: 'reason for call-2',
+            },
+          }),
+        );
       });
 
       it('should call the model with a prompt that includes the tool results', async () => {
